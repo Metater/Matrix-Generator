@@ -29,6 +29,9 @@ public class MatrixGUIManager : MonoBehaviour
     private List<bool[]> cellsBool = new List<bool[]>();
     private Queue<GameObject> additionalCells = new Queue<GameObject>();
 
+    private bool dragTrigger = false;
+    private List<Vector3Int> draggedCells = new List<Vector3Int>();
+
     private float CenterOffset => width / 2f;
 
     public void Save()
@@ -75,7 +78,6 @@ public class MatrixGUIManager : MonoBehaviour
     }
     public void DecreaseGridSize()
     {
-        if (width < 2) return;
         if (width > 1)
         {
             width--;
@@ -116,27 +118,33 @@ public class MatrixGUIManager : MonoBehaviour
         UpdateGUI();
     }
 
-
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        bool leftClickBegan = Input.GetMouseButtonDown(0);
+        if (leftClickBegan || Input.GetMouseButton(0))
         {
             Vector3 mousePos = Input.mousePosition;
             Vector3 worldPos = Camera.main.ScreenToWorldPoint(mousePos);
             Vector3Int cellPos = grid.WorldToCell(worldPos);
-            cellPos.z = 0;
             if (CellPosInRange(cellPos))
             {
-                bool newState = !cellsBool[cellPos.x][cellPos.y];
-                cellsBool[cellPos.x][cellPos.y] = newState;
-                SetCell(cells[cellPos.x][cellPos.y], newState);
+                if (leftClickBegan)
+                {
+                    dragTrigger = GetCellPos(cellPos);
+                }
+                if (!draggedCells.Contains(cellPos) && GetCellPos(cellPos) == dragTrigger)
+                {
+                    ToggleCellPos(cellPos);
+                    draggedCells.Add(cellPos);
+                }
             }
         }
-        if (Input.GetMouseButtonDown(1))
+        if (Input.GetMouseButtonUp(0))
         {
-            UpdateGUI();
+            draggedCells.Clear();
         }
     }
+
     private void UpdateGUI()
     {
         PlaceGrid();
@@ -240,24 +248,36 @@ public class MatrixGUIManager : MonoBehaviour
             }
         }
         cells.Clear();
-        cellsBool.Clear();
+        Debug.Log(cellsBool.Count);
+        if (cellsBool.Count > width)
+        {
+            Debug.Log("Removing at index: " + (width).ToString());
+            Debug.Log("Removing count: " + (cellsBool.Count - width).ToString());
+            cellsBool.RemoveRange(width, cellsBool.Count - width);
+        }
+        else
+        {
+            while (cellsBool.Count < width)
+            {
+                cellsBool.Add(new bool[8]);
+            }
+        }
+        Debug.Log(cellsBool.Count);
 
         for (int x = 0; x < width; x++)
         {
             GameObject[] cellColumn = new GameObject[8];
-            bool[] cellColumnBool = new bool[8];
             for (int y = 0; y < 8; y++)
             {
                 Vector3 cellPos = new Vector3((x - CenterOffset) + 0.5f, y - 3.5f);
                 GameObject cell = GetCellGO();
                 cell.transform.position = cellPos;
-                SetCell(cell, false);
+                SetCell(cell, GetCellPos(new Vector3Int(x, y, 0)));
                 cellColumn[y] = cell;
-                cellColumnBool[y] = false;
             }
             cells.Add(cellColumn);
-            cellsBool.Add(cellColumnBool);
         }
+        UpdateCells();
     }
     private GameObject GetCellGO()
     {
@@ -270,6 +290,16 @@ public class MatrixGUIManager : MonoBehaviour
         else
             return Instantiate(cellPrefab, cellsParent.transform);
     }
+    private void UpdateCells()
+    {
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < 8; y++)
+            {
+                SetCell(cells[x][y], GetCellPos(new Vector3Int(x, y, 0)));
+            }
+        }
+    }
 
     private void SetCell(GameObject cell, bool state)
     {
@@ -278,6 +308,20 @@ public class MatrixGUIManager : MonoBehaviour
             cellMat.color = new Color(1, 1, 1);
         else
             cellMat.color = new Color(0, 0, 0);
+    }
+    private void SetCellPos(Vector3Int pos, bool state)
+    {
+        SetCell(cells[pos.x][pos.y], state);
+    }
+    private void ToggleCellPos(Vector3Int pos)
+    {
+        bool newState = !cellsBool[pos.x][pos.y];
+        cellsBool[pos.x][pos.y] = newState;
+        SetCellPos(pos, newState);
+    }
+    private bool GetCellPos(Vector3Int pos)
+    {
+        return cellsBool[pos.x][pos.y];
     }
 
     private bool CellPosInRange(Vector3Int cellPos)
