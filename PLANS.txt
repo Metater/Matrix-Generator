@@ -1,0 +1,4 @@
+Make load button "open" the file, and turn red if fail
+while loaded, when saves are made, if the text in the matrix name box stays the same,
+the file loaded is overwritten with the new changes
+if it changes, it is saved separetly the normal way
