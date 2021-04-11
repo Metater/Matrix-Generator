@@ -9,6 +9,8 @@ public class MatrixGUIManager : MonoBehaviour
     public Grid grid;
     public int width = 8;
 
+    public Button saveButton;
+    public Button loadButton;
     public Button decreaseGridSizeButton;
     public Button increaseGridSizeButton;
     public Text matrixNameText;
@@ -34,14 +36,21 @@ public class MatrixGUIManager : MonoBehaviour
 
     private string matrixName;
 
+    private float time = 0;
+
+    private List<(float, Button)> disabledButtons = new List<(float, Button)>();
+
     public void Save()
     {
         try
         {
             if (string.IsNullOrEmpty(matrixNameText.text))
-                matrixName = "Unamed Matrix";
-            else
-                matrixName = matrixNameText.text;
+            {
+                DisableButton(1, saveButton);
+                return;
+            }
+
+            matrixName = matrixNameText.text;
 
             string folderPath = Directory.GetParent(Application.dataPath) + @"\Matricies\";
             if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
@@ -144,6 +153,9 @@ public class MatrixGUIManager : MonoBehaviour
 
     private void Update()
     {
+        time += Time.deltaTime;
+        CheckDisabledButtons();
+
         bool leftClickBegan = Input.GetMouseButtonDown(0);
         if (leftClickBegan || Input.GetMouseButton(0))
         {
@@ -414,8 +426,26 @@ public class MatrixGUIManager : MonoBehaviour
         return data;
     }
 
-    private void DisableButton(float time)
+    private void DisableButton(float disableTime, Button button)
     {
-
+        float finishTime = time + disableTime;
+        button.interactable = false;
+        disabledButtons.Add((finishTime, button));
+    }
+    private void CheckDisabledButtons()
+    {
+        List<(float, Button)> tuplesToRemove = new List<(float, Button)>();
+        foreach ((float, Button) finishTimeButtonTuple in disabledButtons)
+        {
+            if (time > finishTimeButtonTuple.Item1)
+            {
+                finishTimeButtonTuple.Item2.interactable = true;
+                tuplesToRemove.Add(finishTimeButtonTuple);
+            }
+        }
+        foreach ((float, Button) tupleToRemove in tuplesToRemove)
+        {
+            disabledButtons.Remove(tupleToRemove);
+        }
     }
 }
