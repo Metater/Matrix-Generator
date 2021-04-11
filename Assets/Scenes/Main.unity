@@ -3467,16 +3467,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 164523190986f8240b055b109be194e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  width: 8
   grid: {fileID: 332884920}
+  width: 8
   decreaseGridSizeButton: {fileID: 727572428}
   increaseGridSizeButton: {fileID: 351913535}
+  matrixNameText: {fileID: 574029002}
   borderPrefab: {fileID: 4501961339432044311, guid: 05188a1053d922445af86d8420791024, type: 3}
   linePrefab: {fileID: 3744062027396388171, guid: fe763595b6404944184f5d08205c2347, type: 3}
   cellPrefab: {fileID: 1365167607517197842, guid: 42405c43527c50a4c9a333904297e6e5, type: 3}
-  bordersParent: {fileID: 772089411}
-  linesParent: {fileID: 2115794266}
-  cellsParent: {fileID: 1596583910}
+  bordersParent: {fileID: 772089412}
+  linesParent: {fileID: 2115794267}
+  cellsParent: {fileID: 1596583911}
 --- !u!1 &1941001098
 GameObject:
   m_ObjectHideFlags: 0

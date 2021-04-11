@@ -1,30 +1,30 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class MatrixGUIManager : MonoBehaviour
 {
-    public int width = 8;
-
     public Grid grid;
+    public int width = 8;
 
     public Button decreaseGridSizeButton;
     public Button increaseGridSizeButton;
+    public Text matrixNameText;
 
     public GameObject borderPrefab;
     public GameObject linePrefab;
     public GameObject cellPrefab;
+    public Transform bordersParent;
+    public Transform linesParent;
+    public Transform cellsParent;
 
-    public GameObject bordersParent;
-    public GameObject linesParent;
-    public GameObject cellsParent;
+    private float CenterOffset => width / 2f;
 
     private GameObject[] borders = new GameObject[4];
-
     private List<GameObject> lines = new List<GameObject>();
     private Queue<GameObject> additionalLines = new Queue<GameObject>();
-
     private List<GameObject[]> cells = new List<GameObject[]>();
     private List<bool[]> cellsBool = new List<bool[]>();
     private Queue<GameObject> additionalCells = new Queue<GameObject>();
@@ -32,11 +32,32 @@ public class MatrixGUIManager : MonoBehaviour
     private bool dragTrigger = false;
     private List<Vector3Int> draggedCells = new List<Vector3Int>();
 
-    private float CenterOffset => width / 2f;
+    private string matrixName;
 
     public void Save()
     {
+        try
+        {
+            if (string.IsNullOrEmpty(matrixNameText.text))
+                matrixName = "Unamed Matrix";
+            else
+                matrixName = matrixNameText.text;
 
+            string folderPath = Directory.GetParent(Application.dataPath) + @"\Matricies\";
+            if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+            string path = folderPath + matrixName + ".txt";
+            int collisionIndex = 1;
+            while (File.Exists(path))
+            {
+                path = folderPath + matrixName + $" {collisionIndex}.txt";
+                collisionIndex++;
+            }
+            File.WriteAllText(path, GetMatrixData());
+        }
+        catch (Exception)
+        {
+
+        }
     }
     public void Load()
     {
@@ -44,34 +65,37 @@ public class MatrixGUIManager : MonoBehaviour
     }
     public void Wipe()
     {
-        for (int x = 0; x < width; x++)
+        for (int x = 0; x < cellsBool.Count; x++)
         {
             for (int y = 0; y < 8; y++)
             {
-                SetCell(cells[x][y], false);
+                if (x < width)
+                    SetCell(cells[x][y], false);
                 cellsBool[x][y] = false;
             }
         }
     }
     public void Fill()
     {
-        for (int x = 0; x < width; x++)
+        for (int x = 0; x < cellsBool.Count; x++)
         {
             for (int y = 0; y < 8; y++)
             {
-                SetCell(cells[x][y], true);
+                if (x < width)
+                    SetCell(cells[x][y], true);
                 cellsBool[x][y] = true;
             }
         }
     }
     public void Invert()
     {
-        for (int x = 0; x < width; x++)
+        for (int x = 0; x < cellsBool.Count; x++)
         {
             for (int y = 0; y < 8; y++)
             {
                 bool newState = !cellsBool[x][y];
-                SetCell(cells[x][y], newState);
+                if (x < width)
+                    SetCell(cells[x][y], newState);
                 cellsBool[x][y] = newState;
             }
         }
@@ -177,10 +201,10 @@ public class MatrixGUIManager : MonoBehaviour
 
         if (!bordersInitialized)
         {
-            borders[0] = Instantiate(borderPrefab, topBorderPos, topBorderRot, bordersParent.transform);
-            borders[1] = Instantiate(borderPrefab, rightBorderPos, rightBorderRot, bordersParent.transform);
-            borders[2] = Instantiate(borderPrefab, bottomBorderPos, bottomBorderRot, bordersParent.transform);
-            borders[3] = Instantiate(borderPrefab, leftBorderPos, leftBorderRot, bordersParent.transform);
+            borders[0] = Instantiate(borderPrefab, topBorderPos, topBorderRot, bordersParent);
+            borders[1] = Instantiate(borderPrefab, rightBorderPos, rightBorderRot, bordersParent);
+            borders[2] = Instantiate(borderPrefab, bottomBorderPos, bottomBorderRot, bordersParent);
+            borders[3] = Instantiate(borderPrefab, leftBorderPos, leftBorderRot, bordersParent);
         }
         else
         {
@@ -234,7 +258,7 @@ public class MatrixGUIManager : MonoBehaviour
             return line;
         }
         else
-            return Instantiate(linePrefab, linesParent.transform);
+            return Instantiate(linePrefab, linesParent);
     }
 
     private void PlaceCells()
@@ -248,12 +272,10 @@ public class MatrixGUIManager : MonoBehaviour
             }
         }
         cells.Clear();
-        Debug.Log(cellsBool.Count);
         if (cellsBool.Count > width)
         {
-            Debug.Log("Removing at index: " + (width).ToString());
-            Debug.Log("Removing count: " + (cellsBool.Count - width).ToString());
-            cellsBool.RemoveRange(width, cellsBool.Count - width);
+            // Adds wipe extra on resize feature
+            //cellsBool.RemoveRange(width, cellsBool.Count - width);
         }
         else
         {
@@ -262,7 +284,6 @@ public class MatrixGUIManager : MonoBehaviour
                 cellsBool.Add(new bool[8]);
             }
         }
-        Debug.Log(cellsBool.Count);
 
         for (int x = 0; x < width; x++)
         {
@@ -288,7 +309,7 @@ public class MatrixGUIManager : MonoBehaviour
             return cell;
         }
         else
-            return Instantiate(cellPrefab, cellsParent.transform);
+            return Instantiate(cellPrefab, cellsParent);
     }
     private void UpdateCells()
     {
@@ -368,5 +389,33 @@ public class MatrixGUIManager : MonoBehaviour
             default:
                 return 0;
         }
+    }
+
+    private string GetMatrixData()
+    {
+        string[] lines = new string[8];
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < 8; y++)
+            {
+                if (cellsBool[x][y])
+                    lines[y] += "1";
+                else
+                    lines[y] += "0";
+            }
+        }
+
+        string data = "";
+        foreach (string line in lines)
+        {
+            data += line + "\n";
+        }
+
+        return data;
+    }
+
+    private void DisableButton(float time)
+    {
+
     }
 }
